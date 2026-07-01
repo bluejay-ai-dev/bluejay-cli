@@ -1,0 +1,22 @@
+{
+  "name": "bluejay",
+  "version": "0.1.0",
+  "description": "One-command onboarding for Bluejay — wires the Bluejay MCP server + skills into your AI coding tools and walks you through your first simulation.",
+  "type": "module",
+  "bin": { "bluejay": "dist/cli.js" },
+  "files": ["dist"],
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "tsup src/cli.ts --format esm --target node18 --clean --minify",
+    "dev": "node --experimental-strip-types src/cli.ts",
+    "prepare": "npm run build"
+  },
+  "keywords": ["bluejay", "mcp", "voice-agent", "testing", "onboarding"],
+  "homepage": "https://getbluejay.ai",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0"
+  }
+}
