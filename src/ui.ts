@@ -1,3 +1,5 @@
+import { staticBanner } from "./splash.js";
+
 const TTY = process.stdout.isTTY === true;
 const e = (code: string) => (TTY ? code : "");
 
@@ -17,15 +19,7 @@ export const isTTY = TTY;
 const w = (s: string) => process.stdout.write(s);
 
 export function banner() {
-  const { bl, lb, cy, d, x } = c;
-  w("\n");
-  w(`${bl}  ██████╗ ██╗     ██╗   ██╗███████╗     ██╗ █████╗ ██╗   ██╗${x}\n`);
-  w(`${bl}  ██╔══██╗██║     ██║   ██║██╔════╝     ██║██╔══██╗╚██╗ ██╔╝${x}\n`);
-  w(`${lb}  ██████╔╝██║     ██║   ██║█████╗       ██║███████║ ╚████╔╝ ${x}\n`);
-  w(`${lb}  ██╔══██╗██║     ██║   ██║██╔══╝  ██   ██║██╔══██║  ╚██╔╝  ${x}\n`);
-  w(`${cy}  ██████╔╝███████╗╚██████╔╝███████╗╚█████╔╝██║  ██║   ██║   ${x}\n`);
-  w(`${cy}  ╚═════╝ ╚══════╝ ╚═════╝ ╚══════╝ ╚════╝ ╚═╝  ╚═╝   ╚═╝   ${x}\n`);
-  w(`${d}                                    MCP · skills · SDK${x}\n`);
+  staticBanner();
 }
 
 export const sec = (s: string) => w(`\n${c.b}${s}${c.x}\n`);

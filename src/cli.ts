@@ -6,6 +6,7 @@ import { downloadSkills } from "./skills.js";
 import { detectInstalled, ONBOARD_PROMPT, type Agent } from "./agents/registry.js";
 import { APP_URL, DOCS_URL, SDK_PKG } from "./const.js";
 import { banner, sec, ok, warn, err, dim, clear, box, Board, selectList, c, isTTY } from "./ui.js";
+import { playSplash } from "./splash.js";
 import { DRY } from "./flags.js";
 
 // dry-run only: animate a task's bar filling over `ms` so the install looks real.
@@ -21,6 +22,7 @@ async function fill(board: Board, i: number, ms: number) {
 const dryMs = (lo: number, hi: number) => lo + Math.floor(Math.random() * (hi - lo));
 
 async function main() {
+  if (isTTY) await playSplash(3000);
   banner();
   if (DRY) dim(`${c.y}DRY RUN${c.x}${c.d} — detecting for real, but nothing is installed, wired, or launched.`);
 
