@@ -44,6 +44,13 @@ function worldFor(hour: number): World {
 
 const fg256 = (i: number) => `\x1b[38;5;${i}m`;
 
+// current working dir, with $HOME collapsed to "~" (matches the Python reference).
+function cwdDisp(): string {
+  const p = process.cwd();
+  const home = process.env.HOME || "";
+  return home && p.startsWith(home) ? "~" + p.slice(home.length) : p;
+}
+
 function fit(s: string, n: number): string {
   if (n <= 0) return "";
   return s.length <= n ? s : s.slice(0, Math.max(0, n - 1)) + "…";
@@ -187,9 +194,11 @@ function box(fi: number, el: number, cols: number, rows: number, color: boolean,
     const tw = inner - 2;
     const m = color ? BLUE + MINI[fi % MINI.length] + R : MINI[fi % MINI.length];
     const [wv, wt] = welcomeChars(color, tw);
+    const cwd = fit("cwd: " + cwdDisp(), tw);
     const rows3: [number, string][] = [
       [2 + wv, m + " " + wt],
       [2 + fit(TAG, tw).length, "  " + dim + fit(TAG, tw) + (color ? R : "")],
+      [2 + cwd.length, "  " + dim + cwd + (color ? R : "")],
     ];
     for (const [vis, line] of rows3) out.push(row(vis, line));
   }
@@ -198,11 +207,37 @@ function box(fi: number, el: number, cols: number, rows: number, color: boolean,
 }
 
 // the dim status line under the box, with mini-spinner + cycling caption.
+// adaptive shrink (ported from the Python reference, made airtight): the rendered
+// visible length must never exceed cols-1 for any cols >= 1. we spend the budget in
+// order — spinner first, then caption + "…", then the longest tail that still fits.
 function status(el: number, cols: number, color: boolean): string {
   const m = MINI[Math.trunc(el * 10) % MINI.length];
-  const cap = fit(CAPTIONS[Math.trunc(el / 1.6) % CAPTIONS.length], Math.max(0, cols - 22));
-  if (color) return " " + BLUE + m + R + " " + DIM + cap + "… (any key to skip)" + R;
-  return ` ${m} ${cap}… (any key to skip)`;
+  const budget = cols - 1; // leave the last column free so the line never wraps
+  const sp = (s: string) => (color ? DIM + s + R : s);
+  const spin = color ? BLUE + m + R : m;
+
+  // clamp the low end so the visible length never exceeds the budget (cols-1).
+  if (budget < 1) return "";           // cols <= 1: nothing fits
+  if (budget < 2) return spin;         // cols == 2: spinner glyph only (1 col)
+  if (budget < 6) return " " + spin;   // 2 visible cols, fits budget >= 2
+
+  const caption = CAPTIONS[Math.trunc(el / 1.6) % CAPTIONS.length];
+  // fixed cost so far: leading " " (1) + spinner (1) + " " (1) = 3.
+  // pick the richest tail that still leaves >= 2 cols for a caption + its ellipsis.
+  let tail = "";
+  for (const t of [" (skip: any key)", " (skip)"]) {
+    if (3 + 2 + t.length <= budget) { tail = t; break; }
+  }
+
+  // whatever room is left after the fixed cost + tail goes to the caption segment.
+  // fit() bounds the segment (incl. any ellipsis it adds) to <= capRoom, so the
+  // total never exceeds budget = cols-1. append our own "…" only if it still fits.
+  const capRoom = budget - 3 - tail.length;
+  let cap = fit(caption, capRoom);
+  if (cap.length < capRoom && !cap.endsWith("…")) cap += "…";
+
+  if (color) return " " + spin + " " + sp(cap) + sp(tail);
+  return " " + spin + " " + cap + tail;
 }
 
 // strip ANSI so callers/tests can measure visible width.
@@ -257,10 +292,10 @@ export function playSplash(ms = 3000): Promise<void> {
     };
 
     const onKey = (data: Buffer) => {
-      if (data.length && data[0] === 3) { // ctrl-c
+      if (data.length && data[0] === 3) { // ctrl-c — exit 1 to match ui.ts handlers
         if (canRaw) stdin.setRawMode!(wasRaw ?? false);
         o.write(ALT_OFF);
-        process.exit(130);
+        process.exit(1);
       }
       cleanup();
     };
@@ -272,12 +307,14 @@ export function playSplash(ms = 3000): Promise<void> {
       const fi = Math.round(((el * 150.0) % 60.0) / (60.0 / NF)) % NF;
       const tier = tierFor(cols, rows);
 
+      // build the box once; derive the status row from its actual line count so the
+      // two can never drift (was a duplicated hardcoded constant per tier).
+      const [boxLines, bw] = tier >= 0 ? box(fi, el, cols, rows, color, tier, world) : [[], 0];
+      const statusRow = tier >= 0 ? boxLines.length + 2 : 1;
+
       if (!last || last[0] !== cols || last[1] !== rows) {
         last = [cols, rows];
-        let lines: string[];
-        if (tier < 0) lines = [status(el, cols, color)];
-        else lines = [...box(fi, el, cols, rows, color, tier, world)[0], "", status(el, cols, color)];
-        lines = lines.slice(0, rows);
+        const lines = (tier < 0 ? [status(el, cols, color)] : [...boxLines, "", status(el, cols, color)]).slice(0, rows);
         o.write("\x1b[2J\x1b[H" + lines.map((l) => l + "\x1b[K").join("\n"));
       }
 
@@ -287,10 +324,9 @@ export function playSplash(ms = 3000): Promise<void> {
         o.write("\x1b[2;3H" + BLUE + MINI[fi % MINI.length] + R);
       }
       if (tier === 2 && tick % 3 === 0) { // world at ~10fps
-        const inner = box(fi, el, cols, rows, color, tier, world)[1] - 4;
+        const inner = bw - 4;
         sceneLines(el, inner, sceneH(rows), color, world).forEach((ln, y) => o.write(`\x1b[${9 + y};3H` + ln));
       }
-      const statusRow = tier >= 0 ? (tier === 2 ? 9 + sceneH(rows) : tier === 1 ? 9 : 5) + 2 : 1;
       if (statusRow <= rows) o.write(`\x1b[${statusRow};1H` + status(el, cols, color) + "\x1b[K");
       tick++;
     };
@@ -303,4 +339,5 @@ export function playSplash(ms = 3000): Promise<void> {
   });
 }
 
-export { stripAnsi };
+// exported for the self-test harness; these are pure render helpers.
+export { stripAnsi, box, status, tierFor, sceneH, worldFor };
