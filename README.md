@@ -2,20 +2,28 @@
 
 One command to wire Bluejay into your AI coding tools and run your first simulation.
 
-```
-npx bluejay
-```
-
-Or non-interactively:
+The canonical install command (the one onboarding shows) hands off to this CLI:
 
 ```
-BLUEJAY_API_KEY=bj_xxx npx bluejay
+curl -fsSL https://raw.githubusercontent.com/bluejay-ai-dev/bluejay-skills/main/install.sh | sh
+```
+
+Or run the CLI directly (the `bluejay` npm name is taken, so use the GitHub form):
+
+```
+npx github:bluejay-ai-dev/bluejay-cli
+```
+
+Non-interactively:
+
+```
+BLUEJAY_API_KEY=bj_xxx npx github:bluejay-ai-dev/bluejay-cli
 ```
 
 Dry run — see the full flow (detection, bars, picker) without installing, wiring, or launching anything:
 
 ```
-npx bluejay --dry-run        # also: --dry, -n, or BLUEJAY_DRY_RUN=1
+npx github:bluejay-ai-dev/bluejay-cli --dry-run        # also: --dry, -n, or BLUEJAY_DRY_RUN=1
 ```
 
 ## What it does

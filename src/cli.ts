@@ -108,7 +108,7 @@ async function main() {
 
   if (!installed.length) {
     warn("No supported coding tools detected. SDK + skills are installed.");
-    dim(`Install Claude Code, Codex, Cursor, Windsurf, or Gemini and re-run: npx bluejay`);
+    dim(`Install Claude Code, Codex, Cursor, Windsurf, or Gemini and re-run: npx github:bluejay-ai-dev/bluejay-cli`);
     footer();
     process.exit(0);
   }
