@@ -12,7 +12,7 @@ export async function resolveKey(): Promise<string> {
   if (!process.stdin.isTTY) {
     throw new Error(
       "No BLUEJAY_API_KEY set and no terminal to prompt.\n" +
-        "  Re-run with:  BLUEJAY_API_KEY=your_key npx bluejay",
+        "  Re-run with:  BLUEJAY_API_KEY=your_key npx github:bluejay-ai-dev/bluejay-cli",
     );
   }
   process.stdout.write(`  Get a key at ${c.b}https://app.getbluejay.ai/settings/api-keys${c.x}\n`);
